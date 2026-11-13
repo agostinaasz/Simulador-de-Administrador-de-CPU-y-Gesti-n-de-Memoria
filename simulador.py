@@ -11,35 +11,60 @@ hubo_llegada = False
 def cargar_procesos(nombre_archivo):
     procesos_cargados = []
 
-    with open(nombre_archivo, "r", encoding="utf-8") as archivo:
-        for linea in archivo:
-            linea = linea.strip()
+    try:
+        archivo = open(nombre_archivo, "r", encoding="utf-8")
+    except FileNotFoundError:
+        print("ERROR: no se encontro el archivo")
+        return None
 
-            if linea != "":
-                linea = linea.replace(",", " ")
-                linea = linea.replace(";", " ")
+    for linea in archivo:
+        linea = linea.strip()
 
-                datos = linea.split()
+        if linea != "":
+            datos = linea.split()
 
-                if len(datos) != 4:
-                    print("Error: formato incorrecto en el archivo.")
-                    return None
+            if len(datos) != 4:
+                print("ERROR: formato incorrecto en el archivo")
+                archivo.close()
+                return None
 
-                proceso = {
-                    "id_proceso": int(datos[0]),
-                    "tamaño": int(datos[1]),
-                    "tiempo_arribo": int(datos[2]),
-                    "tiempo_irrupcion": int(datos[3]),
-                    "tiempo_restante": int(datos[3]),
-                    "estado": 0,
-                    "tiempo_finalizacion": 0
-                }
+            try:
+                id_proceso = datos[0]
+                tiempo_arribo = int(datos[1])
+                tiempo_irrupcion = int(datos[2])
+                tamaño = int(datos[3])
+            except ValueError:
+                print("ERROR: los datos del proceso son incorrectos")
+                archivo.close()
+                return None
 
-                procesos_cargados.append(proceso)
+            if tamaño > 450:
+                print("ERROR: el proceso", id_proceso, "supera los 450K disponibles")
+                archivo.close()
+                return None
 
-                if len(procesos_cargados) > 10:
-                    print("Error: el archivo contiene mas de 10 procesos")
-                    return None
+            proceso = {
+                "id_proceso": id_proceso,
+                "tamaño": tamaño,
+                "tiempo_arribo": tiempo_arribo,
+                "tiempo_irrupcion": tiempo_irrupcion,
+                "tiempo_restante": tiempo_irrupcion,
+                "estado": 0,
+                "tiempo_finalizacion": 0
+            }
+
+            procesos_cargados.append(proceso)
+
+            if len(procesos_cargados) > 10:
+                print("ERROR: el archivo contiene mas de 10 procesos")
+                archivo.close()
+                return None
+
+    archivo.close()
+
+    if len(procesos_cargados) == 0:
+        print("ERROR: el archivo no contiene procesos")
+        return None
 
     return procesos_cargados
 
@@ -75,7 +100,7 @@ def asignar_particion(i, pos_hueco):
             "id_particion": 0,
             "inicio": inicio_original + procesos[i]["tamaño"],
             "tamaño": tamaño_original - procesos[i]["tamaño"],
-            "id_proceso": 0,
+            "id_proceso": None,
             "ocupado": 0
         }
 
@@ -102,6 +127,7 @@ def unificarHuecos():
 
 
 def mostrarEstado():
+    print()
     print("Reloj:", reloj)
 
     if cpu_libre:
@@ -141,7 +167,7 @@ def mostrarEstado():
             )
             hay_listos = True
 
-    if not hay_listos:
+    if hay_listos == False:
         print("No hay procesos listos")
 
     print("Procesos listos y suspendidos")
@@ -156,7 +182,7 @@ def mostrarEstado():
             )
             hay_suspendidos = True
 
-    if not hay_suspendidos:
+    if hay_suspendidos == False:
         print("No hay procesos listos y suspendidos")
 
     input("Presione Enter para continuar")
@@ -166,12 +192,14 @@ def informeFinal():
     suma_retorno = 0
     suma_espera = 0
 
+    print()
     print("Informe final")
 
     for proceso in procesos:
         tiempo_retorno = proceso["tiempo_finalizacion"] - proceso["tiempo_arribo"]
         tiempo_espera = tiempo_retorno - proceso["tiempo_irrupcion"]
 
+        print()
         print("Proceso", proceso["id_proceso"])
         print("Tiempo de retorno:", tiempo_retorno)
         print("Tiempo de espera:", tiempo_espera)
@@ -187,6 +215,7 @@ def informeFinal():
     else:
         rendimiento = 0
 
+    print()
     print("Promedio de tiempo de retorno:", prom_retorno)
     print("Promedio de tiempo de espera:", prom_espera)
     print("Rendimiento del sistema:", rendimiento)
@@ -217,7 +246,7 @@ def tratar_ejecucion(posmen):
 
         for particion in memoria:
             if particion["id_proceso"] == procesos[posmen]["id_proceso"]:
-                particion["id_proceso"] = 0
+                particion["id_proceso"] = None
                 particion["ocupado"] = 0
 
         cpu_libre = True
@@ -229,7 +258,6 @@ def tratar_ejecucion(posmen):
 
 def planificacionCPU():
     global reloj
-    global cpu_libre
     global hubo_llegada
 
     if cpu_libre:
@@ -271,7 +299,7 @@ nombre_archivo = input("Ingrese el nombre del archivo de procesos: ")
 
 procesos_leidos = cargar_procesos(nombre_archivo)
 
-if procesos_leidos is not None and len(procesos_leidos) > 0:
+if procesos_leidos is not None:
     procesos = procesos_leidos
 
     memoria = [
@@ -279,14 +307,14 @@ if procesos_leidos is not None and len(procesos_leidos) > 0:
             "id_particion": 1,
             "inicio": 100,
             "tamaño": 450,
-            "id_proceso": 0,
+            "id_proceso": None,
             "ocupado": 0
         }
     ]
 
     reloj = 0
-    cpu_libre = True
     cant_terminados = 0
+    cpu_libre = True
     en_ejecucion = None
 
     while cant_terminados < len(procesos):
@@ -298,6 +326,7 @@ if procesos_leidos is not None and len(procesos_leidos) > 0:
 
                 if pos_hueco != -1:
                     asignar_particion(i, pos_hueco)
+
                     print(
                         "Proceso",
                         procesos[i]["id_proceso"],
