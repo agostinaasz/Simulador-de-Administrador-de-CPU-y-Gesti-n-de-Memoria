@@ -1,0 +1,351 @@
+accion Simulador_SO es
+    ambiente
+        entradaProceso = registro
+            id_proceso: entero
+            tamaño: entero
+            tiempo_arribo: entero
+            tiempo_irrupcion: entero
+        finregistro
+
+        archProcesos: archivo de entradaProceso
+        regEntrada: entradaProceso
+
+        procesoSim = registro
+            id_proceso: entero
+            tamaño: entero
+            tiempo_arribo: entero
+            tiempo_irrupcion: entero
+            tiempo_restante: entero
+            estado: 0..4
+            tiempo_finalizacion: entero
+        finregistro
+
+        particion = registro
+            id_particion: entero
+            inicio: entero
+            tamaño: entero
+            id_proceso: entero
+            ocupado: entero
+        finregistro
+
+        procesos: arreglo de [1..10] de procesoSim
+        memoria: arreglo de [1..11] de particion
+
+        cant_procesos, cant_particiones, cant_admitidos, cant_terminados, reloj: entero
+        i, j, k, m, pos_hueco, menor_tamaño, inicio_original, tamaño_original, error: entero
+        cpu_libre, hubo_llegada, hay_listos, hay_suspendidos: booleano
+        posmen, en_ejecucion: entero
+        tiempo_retorno, tiempo_espera, suma_retorno, suma_espera: entero
+        prom_retorno, prom_espera, rendimiento: real
+        pausa: caracter
+
+        procedimiento asignar_particion es
+            inicio_original := memoria[pos_hueco].inicio
+            tamaño_original := memoria[pos_hueco].tamaño
+
+            si tamaño_original = procesos[i].tamaño entonces
+                memoria[pos_hueco].id_proceso := procesos[i].id_proceso
+                memoria[pos_hueco].ocupado := 1
+            sino
+                k := cant_particiones
+
+                mientras k > pos_hueco hacer
+                    memoria[k + 1] := memoria[k]
+                    k := k - 1
+                finmientras
+
+                cant_particiones := cant_particiones + 1
+
+                memoria[pos_hueco].inicio := inicio_original
+                memoria[pos_hueco].tamaño := procesos[i].tamaño
+                memoria[pos_hueco].id_proceso := procesos[i].id_proceso
+                memoria[pos_hueco].ocupado := 1
+
+                memoria[pos_hueco + 1].inicio := inicio_original + procesos[i].tamaño
+                memoria[pos_hueco + 1].tamaño := tamaño_original - procesos[i].tamaño
+                memoria[pos_hueco + 1].id_proceso := 0
+                memoria[pos_hueco + 1].ocupado := 0
+            finsi
+
+            para j := 1 hasta cant_particiones hacer
+                memoria[j].id_particion := j
+            finpara
+
+            procesos[i].estado := 1
+        finprocedimiento
+
+        funcion buscarBestFit(tam_buscado: entero): entero es
+            pos_hueco := 0
+            menor_tamaño := 451
+
+            para j := 1 hasta cant_particiones hacer
+                si memoria[j].ocupado = 0 y memoria[j].tamaño >= tam_buscado entonces
+                    si memoria[j].tamaño < menor_tamaño entonces
+                        menor_tamaño := memoria[j].tamaño
+                        pos_hueco := j
+                    finsi
+                finsi
+            finpara
+
+            buscarBestFit := pos_hueco
+        finfuncion
+
+        procedimiento unificarHuecos es
+            i := 1
+
+            mientras i < cant_particiones hacer
+                si memoria[i].ocupado = 0 y memoria[i + 1].ocupado = 0 entonces
+                    memoria[i].tamaño := memoria[i].tamaño + memoria[i + 1].tamaño
+
+                    para k := i + 1 hasta cant_particiones - 1 hacer
+                        memoria[k] := memoria[k + 1]
+                    finpara
+
+                    cant_particiones := cant_particiones - 1
+                sino
+                    i := i + 1
+                finsi
+            finmientras
+
+            para j := 1 hasta cant_particiones hacer
+                memoria[j].id_particion := j
+            finpara
+        finprocedimiento
+
+        procedimiento mostrarEstado es
+            esc("Reloj: ", reloj)
+            si cpu_libre entonces
+                esc("CPU libre")
+            sino
+                esc("Proceso en ejecucion: ", procesos[en_ejecucion].id_proceso)
+            finsi
+            esc("Particiones de memoria")
+            para m := 1 hasta cant_particiones hacer
+                si memoria[m].ocupado = 1 entonces
+                    esc("Particion ", memoria[m].id_particion, " Inicio: ", memoria[m].inicio, " Tamaño: ", memoria[m].tamaño, " Proceso: ", memoria[m].id_proceso, " Fragmentacion interna: 0")
+                sino
+                    esc("Particion ", memoria[m].id_particion, " Inicio: ", memoria[m].inicio, " Tamaño: ", memoria[m].tamaño, " Libre, Fragmentacion interna: 0")
+                finsi
+            finpara
+
+            esc("Procesos listos")
+
+            hay_listos := falso
+
+            para m := 1 hasta cant_procesos hacer
+                si procesos[m].estado = 1 entonces
+                    esc("Proceso ", procesos[m].id_proceso, " Tiempo restante: ", procesos[m].tiempo_restante)
+                    hay_listos := verdadero
+                finsi
+            finpara
+
+            si hay_listos = falso entonces
+                esc("No hay procesos listos")
+            finsi
+
+            esc("Procesos listos y suspendidos")
+
+            hay_suspendidos := falso
+
+            para m := 1 hasta cant_procesos hacer
+                si procesos[m].estado = 2 entonces
+                    esc("Proceso ", procesos[m].id_proceso, " Tiempo restante: ", procesos[m].tiempo_restante)
+                    hay_suspendidos := verdadero
+                finsi
+            finpara
+
+            si hay_suspendidos = falso entonces
+                esc("No hay procesos listos y suspendidos")
+            finsi
+
+            esc("Presione una tecla para continuar")
+            leer(pausa)
+        finprocedimiento
+
+        procedimiento informeFinal es
+            suma_retorno := 0
+            suma_espera := 0
+
+            esc("Informe final:")
+
+            para m := 1 hasta cant_procesos hacer
+                tiempo_retorno := procesos[m].tiempo_finalizacion - procesos[m].tiempo_arribo
+                tiempo_espera := tiempo_retorno - procesos[m].tiempo_irrupcion
+
+                esc("Proceso: ", procesos[m].id_proceso)
+                esc("Tiempo de retorno: ", tiempo_retorno)
+                esc("Tiempo de espera: ", tiempo_espera)
+
+                suma_retorno := suma_retorno + tiempo_retorno
+                suma_espera := suma_espera + tiempo_espera
+            finpara
+
+            si cant_procesos > 0 entonces
+                prom_retorno := suma_retorno / cant_procesos
+                prom_espera := suma_espera / cant_procesos
+            sino
+                prom_retorno := 0
+                prom_espera := 0
+            finsi
+
+            si reloj > 0 entonces
+                rendimiento := cant_terminados / reloj
+            sino
+                rendimiento := 0
+            finsi
+
+            esc("Promedio de tiempo de retorno: ", prom_retorno)
+            esc("Promedio de tiempo de espera: ", prom_espera)
+            esc("Rendimiento del sistema: ", rendimiento)
+        finprocedimiento
+
+        procedimiento tratar_ejecucion es
+            cpu_libre := falso
+            procesos[posmen].estado := 3
+            en_ejecucion := posmen
+
+            si hubo_llegada entonces
+                mostrarEstado()
+                hubo_llegada := falso
+            finsi
+
+            reloj := reloj + 1
+            procesos[posmen].tiempo_restante := procesos[posmen].tiempo_restante - 1
+
+            si procesos[posmen].tiempo_restante = 0 entonces
+                procesos[posmen].estado := 4
+                procesos[posmen].tiempo_finalizacion := reloj
+                cant_terminados := cant_terminados + 1
+
+                para i := 1 hasta cant_particiones hacer
+                    si memoria[i].id_proceso = procesos[posmen].id_proceso entonces
+                        memoria[i].id_proceso := 0
+                        memoria[i].ocupado := 0
+                    finsi
+                finpara
+
+                cpu_libre := verdadero
+
+                unificarHuecos()
+                mostrarEstado()
+            finsi
+        finprocedimiento
+
+        procedimiento planificacionCPU es
+            si cpu_libre entonces
+                posmen := 0
+
+                para i := 1 hasta cant_procesos hacer
+                    si procesos[i].estado = 1 entonces
+                        si posmen = 0 entonces
+                            posmen := i
+                        sino
+                            si procesos[i].tiempo_restante < procesos[posmen].tiempo_restante entonces
+                                posmen := i
+                            finsi
+                        finsi
+                    finsi
+                finpara
+
+                si posmen <> 0 entonces
+                    tratar_ejecucion()
+                sino
+                    si hubo_llegada entonces
+                        mostrarEstado()
+                        hubo_llegada := falso
+                    finsi
+
+                    reloj := reloj + 1
+                finsi
+            sino
+                posmen := en_ejecucion
+
+                para i := 1 hasta cant_procesos hacer
+                    si procesos[i].estado = 1 y procesos[i].tiempo_restante < procesos[posmen].tiempo_restante entonces
+                        posmen := i
+                    finsi
+                finpara
+
+                si posmen <> en_ejecucion entonces
+                    procesos[en_ejecucion].estado := 1
+                finsi
+
+                tratar_ejecucion()
+            finsi
+        finprocedimiento
+
+    proceso
+        cant_procesos := 0
+        error := 0
+        abrir e/(archProcesos)
+        leer(archProcesos, regEntrada)
+        mientras nfda(archProcesos) y cant_procesos < 10 hacer
+            cant_procesos := cant_procesos + 1
+            procesos[cant_procesos].id_proceso := regEntrada.id_proceso
+            procesos[cant_procesos].tamaño := regEntrada.tamaño
+            procesos[cant_procesos].tiempo_arribo := regEntrada.tiempo_arribo
+            procesos[cant_procesos].tiempo_irrupcion := regEntrada.tiempo_irrupcion
+            procesos[cant_procesos].tiempo_restante := regEntrada.tiempo_irrupcion
+            procesos[cant_procesos].estado := 0
+            procesos[cant_procesos].tiempo_finalizacion := 0
+            leer(archProcesos, regEntrada)
+        finmientras
+        si nfda(archProcesos) entonces
+            error := 1
+        finsi
+        cerrar(archProcesos)
+        si error = 1 entonces
+            esc("Error: el archivo contiene mas de 10 procesos")
+        sino
+            reloj := 0
+            cpu_libre := verdadero
+            cant_terminados := 0
+            cant_particiones := 1
+            memoria[1].id_particion := 1
+            memoria[1].inicio := 100
+            memoria[1].tamaño := 450
+            memoria[1].id_proceso := 0
+            memoria[1].ocupado := 0
+            mientras cant_terminados < cant_procesos hacer
+                hubo_llegada := falso
+                para i := 1 hasta cant_procesos hacer
+                    si procesos[i].estado = 2 entonces
+                        pos_hueco := buscarBestFit(procesos[i].tamaño)
+
+                        si pos_hueco <> 0 entonces
+                            asignar_particion()
+                            esc("Proceso ", procesos[i].id_proceso, " pasa de listo y suspendido a listo")
+                        finsi
+                    finsi
+                finpara
+                para i := 1 hasta cant_procesos hacer
+                    si procesos[i].estado = 0 y procesos[i].tiempo_arribo <= reloj entonces
+
+                        si procesos[i].tiempo_arribo = reloj entonces
+                            hubo_llegada := verdadero
+                        finsi
+                        cant_admitidos := 0
+                        para j := 1 hasta cant_procesos hacer
+                            si procesos[j].estado = 1 o procesos[j].estado = 2 o procesos[j].estado = 3 entonces
+                                cant_admitidos := cant_admitidos + 1
+                            finsi
+                        finpara
+                        si cant_admitidos < 5 entonces
+                            pos_hueco := buscarBestFit(procesos[i].tamaño)
+
+                            si pos_hueco = 0 entonces
+                                procesos[i].estado := 2
+                                esc("Proceso ", procesos[i].id_proceso, " pasa a listo y suspendido")
+                            sino
+                                asignar_particion()
+                                esc("Proceso ", procesos[i].id_proceso, " pasa a listo")
+                            finsi
+                        finsi
+                    finsi
+                finpara
+                planificacionCPU()
+            finmientras
+            informeFinal()
+        finsi
+    finproceso
+finaccion
