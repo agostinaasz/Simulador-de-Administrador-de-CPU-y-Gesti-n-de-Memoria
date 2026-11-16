@@ -185,7 +185,7 @@ def mostrarEstado():
     if hay_suspendidos == False:
         print("No hay procesos listos y suspendidos")
 
-    input("Presione Enter para continuar")
+    input("Presione ENTER para continuar")
 
 
 def informeFinal():
