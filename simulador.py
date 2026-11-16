@@ -1,5 +1,24 @@
-procesos = []
-memoria = []
+"""
+============================================================================================
+TRABAJO PRÁCTICO INTEGRADOR: SIMULADOR DE ASIGNACIÓN DE MEMORIA Y PLANIFICACION DE PROCESOS
+Integrantes: 
+    Almirón Bechert, Gabriel Alejo.
+    Bogado, Sharon Tatiana.
+    Gesto, Emiliano Joaquin.
+    Korovaichuk, Dilan Lautaro.
+    Navarro, Maiha Antonella.
+    Segovia, Agostina Victoria Jacqueline.
+============================================================================================
+Estados de los procesos: 
+    0: Nuevo 
+    1: Listo
+    2: Listo y suspendido
+    3: Ejecucion
+    4: Terminado
+"""
+
+procesos = [] #para guardar la info de cada proceso
+memoria = [] #para las particiones 
 
 reloj = 0
 cant_terminados = 0
@@ -113,12 +132,17 @@ def asignar_particion(i, pos_hueco):
 
 
 def unificarHuecos():
+    """
+    recorre las particiones y fusiona los huecos libres contiguos para evitar la fragmentacion externa 
+    formando bloques libres mas grandes.
+    """
     i = 0
 
     while i < len(memoria) - 1:
         if memoria[i]["ocupado"] == 0 and memoria[i + 1]["ocupado"] == 0:
             memoria[i]["tamaño"] = memoria[i]["tamaño"] + memoria[i + 1]["tamaño"]
-            memoria.pop(i + 1)
+            memoria.pop(i + 1) 
+            #aca no incremento i porque la nueva part que cayo en i+1 tmb podria estar libre y necesitar fusionarse con i (te estarias salteando una)
         else:
             i = i + 1
 
@@ -222,6 +246,11 @@ def informeFinal():
 
 
 def tratar_ejecucion(posmen):
+    """
+    simula la ejecucion con una unidad de reloj para el proceso seleccionado.
+    descuenta el tiempo restante de irrupcion y si finaliza marca al proceso como terminado, libera la memoria 
+    que ocupaba y ejecuta la unificacion de huecos mostrando el estado.
+    """
     global reloj
     global cant_terminados
     global cpu_libre
@@ -257,6 +286,11 @@ def tratar_ejecucion(posmen):
 
 
 def planificacionCPU():
+    """
+    agarra el proceso con el menor tiempo restante de la cola de listos.
+    si la cpu esta ocupada y llega un proceso con menor t restante que el actual, expropia
+    la cpu mandando el proceso actual de vuelta a Listo.
+    """
     global reloj
     global hubo_llegada
 
@@ -271,7 +305,7 @@ def planificacionCPU():
                     if procesos[i]["tiempo_restante"] < procesos[posmen]["tiempo_restante"]:
                         posmen = i
 
-        if posmen != -1:
+        if posmen != -1: #esto por si no habia ninguno listo y la cpu esta ociosa y no intentar acceder a la pos -1 que va a dar error.
             tratar_ejecucion(posmen)
 
         else:
