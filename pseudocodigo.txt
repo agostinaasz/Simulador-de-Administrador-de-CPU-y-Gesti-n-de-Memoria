@@ -158,7 +158,7 @@ accion Simulador_SO es
                 esc("No hay procesos listos y suspendidos")
             finsi
 
-            esc("Presione una tecla para continuar")
+            esc("Presione ENTER para continuar")
             leer(pausa)
         finprocedimiento
 
