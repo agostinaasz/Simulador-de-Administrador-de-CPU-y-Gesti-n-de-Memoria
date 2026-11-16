@@ -7,8 +7,8 @@ El simulador implementa:
 - Particiones variables
 - Asignación de memoria Best-Fit
 - Planificación SRTF
-- Estados Nuevo, Listo, Listo/Suspendido, Ejecución y Terminado
-- Máximo de 5 procesos admitidos simultáneamente
+- Estados Nuevo, Listo, Listo y Suspendido, Ejecución y Terminado
+- Máximo de 5 procesos admitidos simultáneamente.
 - Cálculo de tiempo de retorno, tiempo de espera y rendimiento
 
 Ejecución
