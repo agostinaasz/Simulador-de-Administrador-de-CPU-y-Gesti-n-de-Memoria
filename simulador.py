@@ -26,7 +26,11 @@ cpu_libre = True
 en_ejecucion = None
 hubo_llegada = False
 
-
+    """
+    lee los procesos desde el archivo de entrada y valida su formato.
+    Cada linea contiene: proceso, tiempo de arribo, tiempo de irrupcion y tamaño.
+    Retorna la lista cargada o none si encuentra un error.
+    """
 def cargar_procesos(nombre_archivo):
     procesos_cargados = []
 
@@ -89,6 +93,10 @@ def cargar_procesos(nombre_archivo):
 
 
 def buscarBestFit(tam_buscado):
+    """
+    busca mediante el algoritmo best fit el hueco libre mas pequeño donde pueda entrar
+    un proceso del tamaño indicado. Retorna su posicion o -1 si no existe.
+    """
     pos_hueco = -1
     menor_tamaño = 451
 
@@ -102,6 +110,11 @@ def buscarBestFit(tam_buscado):
 
 
 def asignar_particion(i, pos_hueco):
+    """
+    asigna al proceso la particion encontrada por best fit.
+    Si sobra espacio, divide el hueco y mantiene el resto como memoria libre.
+    El proceso pasa al estado Listo.
+    """
     inicio_original = memoria[pos_hueco]["inicio"]
     tamaño_original = memoria[pos_hueco]["tamaño"]
 
@@ -151,6 +164,10 @@ def unificarHuecos():
 
 
 def mostrarEstado():
+    """
+    muestra el estado actual de la cpu, las particiones de memoria,
+    la cola de Listos y la cola de listos y suspendidos.
+    """
     print()
     print("Reloj:", reloj)
 
@@ -213,6 +230,10 @@ def mostrarEstado():
 
 
 def informeFinal():
+    """
+    calcula y muestra el tiempo de retorno y espera de cada proceso,
+    sus promedios y el rendimiento final del sistema.
+    """
     suma_retorno = 0
     suma_espera = 0
 
@@ -335,7 +356,7 @@ procesos_leidos = cargar_procesos(nombre_archivo)
 
 if procesos_leidos is not None:
     procesos = procesos_leidos
-
+    
     memoria = [
         {
             "id_particion": 1,
