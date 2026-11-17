@@ -16,22 +16,24 @@ Estados de los procesos:
     3: Ejecucion
     4: Terminado
 """
+# estructuras principales de la simulacion.
+procesos = [] # para guardar la info de cada proceso
+memoria = [] # para las particiones 
 
-procesos = [] #para guardar la info de cada proceso
-memoria = [] #para las particiones 
-
+# variables generales para controlar el avance y el estado de la simulacion
 reloj = 0
 cant_terminados = 0
 cpu_libre = True
 en_ejecucion = None
 hubo_llegada = False
 
+
+def cargar_procesos(nombre_archivo):
     """
     lee los procesos desde el archivo de entrada y valida su formato.
     Cada linea contiene: proceso, tiempo de arribo, tiempo de irrupcion y tamaño.
-    Retorna la lista cargada o none si encuentra un error.
+    Retorna la lista cargada o None si encuentra un error.
     """
-def cargar_procesos(nombre_archivo):
     procesos_cargados = []
 
     try:
@@ -79,6 +81,7 @@ def cargar_procesos(nombre_archivo):
             procesos_cargados.append(proceso)
 
             if len(procesos_cargados) > 10:
+                # la consigna permite solo un maximo de 10 procesos.
                 print("ERROR: el archivo contiene mas de 10 procesos")
                 archivo.close()
                 return None
@@ -98,6 +101,7 @@ def buscarBestFit(tam_buscado):
     un proceso del tamaño indicado. Retorna su posicion o -1 si no existe.
     """
     pos_hueco = -1
+    # 451 se usa porque el mayor hueco posible de memoria para procesos es de 450k
     menor_tamaño = 451
 
     for j in range(len(memoria)):
@@ -123,6 +127,7 @@ def asignar_particion(i, pos_hueco):
         memoria[pos_hueco]["ocupado"] = 1
 
     else:
+         # si el hueco es mayor que el proceso el sobrante queda como una nueva particion libre
         memoria[pos_hueco]["inicio"] = inicio_original
         memoria[pos_hueco]["tamaño"] = procesos[i]["tamaño"]
         memoria[pos_hueco]["id_proceso"] = procesos[i]["id_proceso"]
@@ -241,6 +246,7 @@ def informeFinal():
     print("Informe final")
 
     for proceso in procesos:
+         # calculo de las metricas pedidas para cada proceso
         tiempo_retorno = proceso["tiempo_finalizacion"] - proceso["tiempo_arribo"]
         tiempo_espera = tiempo_retorno - proceso["tiempo_irrupcion"]
 
@@ -341,6 +347,7 @@ def planificacionCPU():
 
         for i in range(len(procesos)):
             if procesos[i]["estado"] == 1:
+                # srtf solo expropia si aparece un proceso con menor tiempo restante
                 if procesos[i]["tiempo_restante"] < procesos[posmen]["tiempo_restante"]:
                     posmen = i
 
@@ -358,6 +365,8 @@ if procesos_leidos is not None:
     procesos = procesos_leidos
     
     memoria = [
+        # los primeros 100k le corresponden al sistema operativo
+        # los 450k restantes quedan inicialmente libres para los procesos
         {
             "id_particion": 1,
             "inicio": 100,
@@ -399,7 +408,7 @@ if procesos_leidos is not None:
                 for proceso in procesos:
                     if proceso["estado"] == 1 or proceso["estado"] == 2 or proceso["estado"] == 3:
                         cant_admitidos = cant_admitidos + 1
-
+                # como maximo puede haber 5 procesos entre ejecucion, listos y listos/suspendidos
                 if cant_admitidos < 5:
                     pos_hueco = buscarBestFit(procesos[i]["tamaño"])
 
