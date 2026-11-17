@@ -281,14 +281,13 @@ def mostrarEstado():
             particion["inicio"],
             particion["tamaño"],
             estado,
-            proceso,
-            0
+            proceso
         ])
 
     mostrar_tabla(
-        ["Particion", "Inicio", "Tamaño", "Estado", "Proceso", "Frag.Int"],
+        ["Particion", "Inicio", "Tamaño", "Estado", "Proceso"],
         filas_memoria,
-        [9, 8, 8, 10, 9, 9]
+        [9, 8, 8, 10, 9]
     )
 
     print()
