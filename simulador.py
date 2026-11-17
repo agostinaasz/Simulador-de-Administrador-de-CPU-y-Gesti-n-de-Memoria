@@ -16,6 +16,7 @@ Estados de los procesos:
     3: Ejecucion
     4: Terminado
 """
+
 # estructuras principales de la simulacion.
 procesos = [] # para guardar la info de cada proceso
 memoria = [] # para las particiones 
@@ -101,6 +102,7 @@ def buscarBestFit(tam_buscado):
     un proceso del tamaño indicado. Retorna su posicion o -1 si no existe.
     """
     pos_hueco = -1
+
     # 451 se usa porque el mayor hueco posible de memoria para procesos es de 450k
     menor_tamaño = 451
 
@@ -127,7 +129,7 @@ def asignar_particion(i, pos_hueco):
         memoria[pos_hueco]["ocupado"] = 1
 
     else:
-         # si el hueco es mayor que el proceso el sobrante queda como una nueva particion libre
+        # si el hueco es mayor que el proceso el sobrante queda como una nueva particion libre
         memoria[pos_hueco]["inicio"] = inicio_original
         memoria[pos_hueco]["tamaño"] = procesos[i]["tamaño"]
         memoria[pos_hueco]["id_proceso"] = procesos[i]["id_proceso"]
@@ -159,8 +161,10 @@ def unificarHuecos():
     while i < len(memoria) - 1:
         if memoria[i]["ocupado"] == 0 and memoria[i + 1]["ocupado"] == 0:
             memoria[i]["tamaño"] = memoria[i]["tamaño"] + memoria[i + 1]["tamaño"]
-            memoria.pop(i + 1) 
-            #aca no incremento i porque la nueva part que cayo en i+1 tmb podria estar libre y necesitar fusionarse con i (te estarias salteando una)
+            memoria.pop(i + 1)
+
+            # aca no incremento i porque la nueva part que cayo en i+1 tmb podria estar libre
+            # y necesitar fusionarse con i
         else:
             i = i + 1
 
@@ -168,70 +172,127 @@ def unificarHuecos():
         memoria[j]["id_particion"] = j + 1
 
 
+def mostrar_tabla(encabezados, filas, anchos):
+    """
+    muestra una tabla utilizando los encabezados, filas y anchos indicados.
+    """
+    linea_superior = "┌" + "┬".join("─" * (ancho + 2) for ancho in anchos) + "┐"
+    linea_media = "├" + "┼".join("─" * (ancho + 2) for ancho in anchos) + "┤"
+    linea_inferior = "└" + "┴".join("─" * (ancho + 2) for ancho in anchos) + "┘"
+
+    print(linea_superior)
+
+    print(
+        "│" +
+        "│".join(
+            f" {str(encabezados[i]):<{anchos[i]}} "
+            for i in range(len(encabezados))
+        ) +
+        "│"
+    )
+
+    print(linea_media)
+
+    for fila in filas:
+        print(
+            "│" +
+            "│".join(
+                f" {str(fila[i]):<{anchos[i]}} "
+                for i in range(len(fila))
+            ) +
+            "│"
+        )
+
+    print(linea_inferior)
+
+
 def mostrarEstado():
     """
-    muestra el estado actual de la cpu, las particiones de memoria,
-    la cola de Listos y la cola de listos y suspendidos.
+    muestra el estado actual de la cpu, las particiones de memoria
+    y los procesos que ya ingresaron al sistema.
     """
     print()
-    print("Reloj:", reloj)
+    print("╔" + "═" * 78 + "╗")
+    print("║" + "SIMULADOR DE ASIGNACION DE MEMORIA Y PLANIFICACION".center(78) + "║")
+    print("╠" + "═" * 78 + "╣")
 
     if cpu_libre:
-        print("CPU libre")
+        cpu = "Libre"
     else:
-        print("Proceso en ejecucion:", procesos[en_ejecucion]["id_proceso"])
+        cpu = procesos[en_ejecucion]["id_proceso"]
 
-    print("Particiones de memoria")
+    datos = f" Reloj: {reloj}    CPU: {cpu}"
+
+    print("║" + datos.ljust(78) + "║")
+    print("╚" + "═" * 78 + "╝")
+
+    print()
+    print("PROCESOS")
+
+    filas_procesos = []
+
+    for proceso in procesos:
+
+        # se muestran solamente los procesos cuyo tiempo de arribo ya fue alcanzado
+        if proceso["tiempo_arribo"] <= reloj:
+
+            if proceso["estado"] == 0:
+                estado = "Nuevo"
+            elif proceso["estado"] == 1:
+                estado = "Listo"
+            elif proceso["estado"] == 2:
+                estado = "Listo/Suspendido"
+            elif proceso["estado"] == 3:
+                estado = "Ejecucion"
+            else:
+                estado = "Terminado"
+
+            filas_procesos.append([
+                proceso["id_proceso"],
+                proceso["tamaño"],
+                proceso["tiempo_arribo"],
+                proceso["tiempo_irrupcion"],
+                estado,
+                proceso["tiempo_restante"]
+            ])
+
+    mostrar_tabla(
+        ["Proceso", "Tamaño", "TA", "TI", "Estado", "Restante"],
+        filas_procesos,
+        [9, 8, 6, 6, 17, 9]
+    )
+
+    print()
+    print("MEMORIA")
+
+    filas_memoria = []
 
     for particion in memoria:
+
         if particion["ocupado"] == 1:
-            print(
-                "Particion", particion["id_particion"],
-                "Inicio:", particion["inicio"],
-                "Tamaño:", particion["tamaño"],
-                "Proceso:", particion["id_proceso"],
-                "Fragmentacion interna: 0"
-            )
+            estado = "Ocupada"
+            proceso = particion["id_proceso"]
         else:
-            print(
-                "Particion", particion["id_particion"],
-                "Inicio:", particion["inicio"],
-                "Tamaño:", particion["tamaño"],
-                "Libre",
-                "Fragmentacion interna: 0"
-            )
+            estado = "Libre"
+            proceso = "-"
 
-    print("Procesos listos")
+        filas_memoria.append([
+            particion["id_particion"],
+            particion["inicio"],
+            particion["tamaño"],
+            estado,
+            proceso,
+            0
+        ])
 
-    hay_listos = False
+    mostrar_tabla(
+        ["Particion", "Inicio", "Tamaño", "Estado", "Proceso", "Frag.Int"],
+        filas_memoria,
+        [9, 8, 8, 10, 9, 9]
+    )
 
-    for proceso in procesos:
-        if proceso["estado"] == 1:
-            print(
-                "Proceso", proceso["id_proceso"],
-                "Tiempo restante:", proceso["tiempo_restante"]
-            )
-            hay_listos = True
-
-    if hay_listos == False:
-        print("No hay procesos listos")
-
-    print("Procesos listos y suspendidos")
-
-    hay_suspendidos = False
-
-    for proceso in procesos:
-        if proceso["estado"] == 2:
-            print(
-                "Proceso", proceso["id_proceso"],
-                "Tiempo restante:", proceso["tiempo_restante"]
-            )
-            hay_suspendidos = True
-
-    if hay_suspendidos == False:
-        print("No hay procesos listos y suspendidos")
-
-    input("Presione ENTER para continuar")
+    print()
+    input("Presione ENTER para continuar...")
 
 
 def informeFinal():
@@ -241,19 +302,20 @@ def informeFinal():
     """
     suma_retorno = 0
     suma_espera = 0
-
-    print()
-    print("Informe final")
+    filas = []
 
     for proceso in procesos:
-         # calculo de las metricas pedidas para cada proceso
+        # calculo de las metricas pedidas para cada proceso
         tiempo_retorno = proceso["tiempo_finalizacion"] - proceso["tiempo_arribo"]
         tiempo_espera = tiempo_retorno - proceso["tiempo_irrupcion"]
 
-        print()
-        print("Proceso", proceso["id_proceso"])
-        print("Tiempo de retorno:", tiempo_retorno)
-        print("Tiempo de espera:", tiempo_espera)
+        filas.append([
+            proceso["id_proceso"],
+            proceso["tiempo_arribo"],
+            proceso["tiempo_irrupcion"],
+            tiempo_retorno,
+            tiempo_espera
+        ])
 
         suma_retorno = suma_retorno + tiempo_retorno
         suma_espera = suma_espera + tiempo_espera
@@ -267,9 +329,21 @@ def informeFinal():
         rendimiento = 0
 
     print()
-    print("Promedio de tiempo de retorno:", prom_retorno)
-    print("Promedio de tiempo de espera:", prom_espera)
-    print("Rendimiento del sistema:", rendimiento)
+    print("╔" + "═" * 58 + "╗")
+    print("║" + "INFORME FINAL".center(58) + "║")
+    print("╚" + "═" * 58 + "╝")
+    print()
+
+    mostrar_tabla(
+        ["Proceso", "TA", "TI", "Retorno", "Espera"],
+        filas,
+        [9, 6, 6, 10, 9]
+    )
+
+    print()
+    print(f"Promedio de tiempo de retorno : {prom_retorno:.2f}")
+    print(f"Promedio de tiempo de espera  : {prom_espera:.2f}")
+    print(f"Rendimiento del sistema       : {rendimiento:.3f}")
 
 
 def tratar_ejecucion(posmen):
@@ -332,7 +406,7 @@ def planificacionCPU():
                     if procesos[i]["tiempo_restante"] < procesos[posmen]["tiempo_restante"]:
                         posmen = i
 
-        if posmen != -1: #esto por si no habia ninguno listo y la cpu esta ociosa y no intentar acceder a la pos -1 que va a dar error.
+        if posmen != -1: # esto por si no habia ninguno listo y la cpu esta ociosa y no intentar acceder a la pos -1 que va a dar error.
             tratar_ejecucion(posmen)
 
         else:
@@ -363,10 +437,10 @@ procesos_leidos = cargar_procesos(nombre_archivo)
 
 if procesos_leidos is not None:
     procesos = procesos_leidos
-    
+
+    # los primeros 100k le corresponden al sistema operativo
+    # los 450k restantes quedan inicialmente libres para los procesos
     memoria = [
-        # los primeros 100k le corresponden al sistema operativo
-        # los 450k restantes quedan inicialmente libres para los procesos
         {
             "id_particion": 1,
             "inicio": 100,
@@ -391,6 +465,7 @@ if procesos_leidos is not None:
                 if pos_hueco != -1:
                     asignar_particion(i, pos_hueco)
 
+                    print()
                     print(
                         "Proceso",
                         procesos[i]["id_proceso"],
@@ -408,6 +483,7 @@ if procesos_leidos is not None:
                 for proceso in procesos:
                     if proceso["estado"] == 1 or proceso["estado"] == 2 or proceso["estado"] == 3:
                         cant_admitidos = cant_admitidos + 1
+
                 # como maximo puede haber 5 procesos entre ejecucion, listos y listos/suspendidos
                 if cant_admitidos < 5:
                     pos_hueco = buscarBestFit(procesos[i]["tamaño"])
@@ -415,6 +491,7 @@ if procesos_leidos is not None:
                     if pos_hueco == -1:
                         procesos[i]["estado"] = 2
 
+                        print()
                         print(
                             "Proceso",
                             procesos[i]["id_proceso"],
@@ -424,6 +501,7 @@ if procesos_leidos is not None:
                     else:
                         asignar_particion(i, pos_hueco)
 
+                        print()
                         print(
                             "Proceso",
                             procesos[i]["id_proceso"],
